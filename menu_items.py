@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from vpn_config import VPNConfig, IMG_DIR
 
-class AbstarctMenuItem(ABC):
+
+class AbstractMenuItem(ABC):
     def __init__(self, gtk, name):
         self.__gtk = gtk
         self.__item = self.__gtk.MenuItem(name)
@@ -11,44 +12,44 @@ class AbstarctMenuItem(ABC):
         return self.__item
 
     @abstractmethod
-    def action(self, object): pass
+    def action(self, o): pass
 
 
-class CloseMenuItem(AbstarctMenuItem):
+class CloseMenuItem(AbstractMenuItem):
     def __init__(self, gtk):
         super().__init__(gtk, 'close')
         self.gtk = gtk
 
-    def action(self, object):
+    def action(self, o):
         self.gtk.main_quit()
 
 
-class ConnectMenuItem(AbstarctMenuItem):
+class ConnectMenuItem(AbstractMenuItem):
     def __init__(self, gtk, indicator):
         super().__init__(gtk, 'connect')
         self.gtk = gtk
         self.indicator = indicator
 
-    def action(self, object):
+    def action(self, o):
         self.indicator.set_icon(IMG_DIR + '/on.png')
 
 
-class DisconnectMenuItem(AbstarctMenuItem):
+class DisconnectMenuItem(AbstractMenuItem):
     def __init__(self, gtk, indicator):
         super().__init__(gtk, 'disconnect')
         self.gtk = gtk
         self.indicator = indicator
 
-    def action(self, object):
+    def action(self, o):
         self.indicator.set_icon(IMG_DIR + '/off.png')
 
 
-class ConfigMenuItem(AbstarctMenuItem):
+class ConfigMenuItem(AbstractMenuItem):
     def __init__(self, gtk):
         super().__init__(gtk, 'Config')
         self.gtk = gtk
 
-    def action(self, object):
+    def action(self, o):
         dialog = self.gtk.FileChooserDialog(
             title="Select openfortivpn configuration file",
             action=self.gtk.FileChooserAction.OPEN,
@@ -73,12 +74,12 @@ class ConfigMenuItem(AbstarctMenuItem):
             dialog.destroy()
 
 
-class LogsMenuItem(AbstarctMenuItem):
+class LogsMenuItem(AbstractMenuItem):
     def __init__(self, gtk):
         super().__init__(gtk, 'Logs')
         self.gtk = gtk
 
-    def action(self, object):
+    def action(self, o):
         pass
 
 
