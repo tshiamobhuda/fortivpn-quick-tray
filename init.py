@@ -12,32 +12,23 @@ IMG_DIR = path.dirname(path.realpath(__file__)) + '/icons'
 def build_menu():
     menu = Gtk.Menu()
 
-    connect_vpn = Gtk.MenuItem('connect')
-    connect_vpn.connect('activate', action_connect_vpn)
-
-    disconnect_vpn = Gtk.MenuItem('disconnect')
-    disconnect_vpn.connect('activate', action_disconnect_vpn)
-
-    configure_vpn = Gtk.MenuItem('config')
-    configure_vpn.connect('activate', action_configure_vpn)
-
-    show_vpn_logs = Gtk.MenuItem('logs')
-    show_vpn_logs.connect('activate', action_show_vpn_logs)
-
-    close = Gtk.MenuItem('exit')
-    close.connect('activate', Gtk.main_quit)
-
-    menu.append(connect_vpn)
-    menu.append(disconnect_vpn)
+    menu.append(build_menu_item('connect', action_connect_vpn))
+    menu.append(build_menu_item('disconnect', action_disconnect_vpn))
     menu.append(Gtk.SeparatorMenuItem.new())
-    menu.append(configure_vpn)
-    menu.append(show_vpn_logs)
+    menu.append(build_menu_item('config', action_configure_vpn))
+    menu.append(build_menu_item('logs', action_show_vpn_logs))
     menu.append(Gtk.SeparatorMenuItem.new())
-    menu.append(close)
+    menu.append(build_menu_item('close', action_close_app))
 
     menu.show_all()
     
     return menu
+
+def build_menu_item(name, handler):
+    item = Gtk.MenuItem(name)
+    item.connect('activate', handler)
+    
+    return item
 
 def action_connect_vpn(object):
     indicator.set_icon(IMG_DIR + '/on.png')
@@ -50,6 +41,9 @@ def action_configure_vpn(object):
 
 def action_show_vpn_logs(object):
     pass
+
+def action_close_app(object):
+    Gtk.main_quit()
 
 if __name__ == "__main__":
     indicator = AppIndicator3.Indicator.new(APP_NAME, IMG_DIR + '/off.png', AppIndicator3.IndicatorCategory.SYSTEM_SERVICES)
