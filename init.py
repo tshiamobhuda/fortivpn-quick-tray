@@ -9,6 +9,9 @@ from os import path
 APP_NAME = 'FortiVPN-Quick-Tray'
 IMG_DIR = path.dirname(path.realpath(__file__)) + '/icons'
 
+VPN_ON = False
+VPN_CONFIG = '/etc/openfortivpn/Kosmosdal'
+
 def build_menu():
     menu = Gtk.Menu()
 
@@ -37,7 +40,29 @@ def action_disconnect_vpn(object):
     indicator.set_icon(IMG_DIR + '/off.png')
 
 def action_configure_vpn(object):
-    pass
+    dialog = Gtk.FileChooserDialog(
+        title="Select openfortivpn configuration file",
+        action=Gtk.FileChooserAction.OPEN,
+        parent=Gtk.Window(),
+        buttons=(
+            Gtk.STOCK_CANCEL,
+            Gtk.ResponseType.CANCEL,
+            Gtk.STOCK_OK,
+            Gtk.ResponseType.OK
+        )
+    )
+
+    filter = Gtk.FileFilter()
+    filter.set_name('Text File')
+    filter.add_mime_type('text/plain')
+    dialog.add_filter(filter)
+
+    if dialog.run() == Gtk.ResponseType.OK:
+        global VPN_CONFIG
+        VPN_CONFIG = dialog.get_filename()
+        dialog.destroy()
+    else:
+        dialog.destroy()
 
 def action_show_vpn_logs(object):
     pass
