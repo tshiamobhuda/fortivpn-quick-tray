@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from vpn_config import VPNConfig
+from vpn_config import VPNConfig, IMG_DIR
 
 class AbstarctMenuItem(ABC):
     def __init__(self, gtk, name):
@@ -24,25 +24,23 @@ class CloseMenuItem(AbstarctMenuItem):
 
 
 class ConnectMenuItem(AbstarctMenuItem):
-    def __init__(self, gtk, indicator, img_path):
+    def __init__(self, gtk, indicator):
         super().__init__(gtk, 'connect')
         self.gtk = gtk
         self.indicator = indicator
-        self.img_path = img_path
 
     def action(self, object):
-        self.indicator.set_icon(self.img_path + '/on.png')
+        self.indicator.set_icon(IMG_DIR + '/on.png')
 
 
 class DisconnectMenuItem(AbstarctMenuItem):
-    def __init__(self, gtk, indicator, img_path):
+    def __init__(self, gtk, indicator):
         super().__init__(gtk, 'disconnect')
         self.gtk = gtk
         self.indicator = indicator
-        self.img_path = img_path
 
     def action(self, object):
-        self.indicator.set_icon(self.img_path + '/off.png')
+        self.indicator.set_icon(IMG_DIR + '/off.png')
 
 
 class ConfigMenuItem(AbstarctMenuItem):
@@ -82,3 +80,24 @@ class LogsMenuItem(AbstarctMenuItem):
 
     def action(self, object):
         pass
+
+
+class MenuBuilder:
+    def __init__(self, gtk, indicator):
+        self.__gtk = gtk
+        self.__indicator = indicator
+
+    def build_menu(self):
+        menu = self.__gtk.Menu()
+        
+        menu.append(ConnectMenuItem(self.__gtk, self.__indicator).get_menu_item())
+        menu.append(DisconnectMenuItem(self.__gtk, self.__indicator).get_menu_item())
+        menu.append(self.__gtk.SeparatorMenuItem.new())
+        menu.append(ConfigMenuItem(self.__gtk).get_menu_item())
+        menu.append(LogsMenuItem(self.__gtk).get_menu_item())
+        menu.append(self.__gtk.SeparatorMenuItem.new())
+        menu.append(CloseMenuItem(self.__gtk).get_menu_item())
+        
+        menu.show_all()
+
+        return menu
