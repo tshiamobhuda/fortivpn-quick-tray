@@ -1,15 +1,17 @@
 from abc import ABC, abstractmethod
-from vpn_config import VPNConfig, IMG_DIR
+from vpn_config import VPNConfig
+from subprocess import Popen, PIPE, TimeoutExpired
+from shlex import split
 
 
 class AbstractMenuItem(ABC):
     def __init__(self, gtk, name):
         self.__gtk = gtk
-        self.__item = self.__gtk.MenuItem(name)
-        self.__item.connect('activate', self.action)
+        self._item = self.__gtk.MenuItem(name)
+        self._item.connect('activate', self.action)
 
     def get_menu_item(self):
-        return self.__item
+        return self._item
 
     @abstractmethod
     def action(self, o): pass
@@ -17,7 +19,7 @@ class AbstractMenuItem(ABC):
 
 class CloseMenuItem(AbstractMenuItem):
     def __init__(self, gtk):
-        super().__init__(gtk, 'close')
+        super().__init__(gtk, 'Close')
         self.gtk = gtk
 
     def action(self, o):
@@ -25,23 +27,52 @@ class CloseMenuItem(AbstractMenuItem):
 
 
 class ConnectMenuItem(AbstractMenuItem):
-    def __init__(self, gtk, indicator):
-        super().__init__(gtk, 'connect')
+    def __init__(self, gtk, indicator, app_indicator):
+        super().__init__(gtk, 'Connect')
         self.gtk = gtk
         self.indicator = indicator
+        self.app_indicator = app_indicator
 
     def action(self, o):
-        self.indicator.set_icon(IMG_DIR + '/on.png')
+        VPNConfig().set_vpn_process(Popen(split('pkexec openfortivpn -c /etc/openfortivpn/Kosmosdal'), stdin=PIPE, stdout=PIPE, stderr=PIPE))
+        process = VPNConfig().get_vpn_process()
+
+        try:
+            out_data, _ = process.communicate(timeout=5)
+            
+            if len(out_data) and 'VPN account password' in out_data.decode():
+                self.indicator.set_attention_icon_full('err', 'Error')
+                self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
+                self.indicator.set_label('FortiVPN ERR', 'FortiVPN OFF')
+                VPNConfig().set_vpn_status = False
+                
+                return
+
+        except TimeoutExpired:
+            pass
+
+        while True:
+            output = process.stdout.readline()            
+            if process.poll() is not None and output == '':
+                break
+
+            if 'Tunnel is up and running' in output.decode():
+                VPNConfig().set_vpn_status = True
+                self.indicator.set_attention_icon_full('on', 'Connected')
+                self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
+                self.indicator.set_label('FortiVPN ON', 'FortiVPN OFF')
+                self._item.set_sensitive(False)
+                break
 
 
 class DisconnectMenuItem(AbstractMenuItem):
     def __init__(self, gtk, indicator):
-        super().__init__(gtk, 'disconnect')
+        super().__init__(gtk, 'Disconnect')
         self.gtk = gtk
         self.indicator = indicator
 
     def action(self, o):
-        self.indicator.set_icon(IMG_DIR + '/off.png')
+        pass
 
 
 class ConfigMenuItem(AbstractMenuItem):
@@ -84,14 +115,15 @@ class LogsMenuItem(AbstractMenuItem):
 
 
 class MenuBuilder:
-    def __init__(self, gtk, indicator):
+    def __init__(self, gtk, indicator, app_indicator):
         self.__gtk = gtk
         self.__indicator = indicator
+        self.__app_indicator = app_indicator
 
     def build_menu(self):
         menu = self.__gtk.Menu()
         
-        menu.append(ConnectMenuItem(self.__gtk, self.__indicator).get_menu_item())
+        menu.append(ConnectMenuItem(self.__gtk, self.__indicator, self.__app_indicator).get_menu_item())
         menu.append(DisconnectMenuItem(self.__gtk, self.__indicator).get_menu_item())
         menu.append(self.__gtk.SeparatorMenuItem.new())
         menu.append(ConfigMenuItem(self.__gtk).get_menu_item())
