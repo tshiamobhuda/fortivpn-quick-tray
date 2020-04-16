@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from vpn_config import VPNConfig
 from subprocess import run, Popen, PIPE, TimeoutExpired, CalledProcessError
 from shlex import split
+from mmap import mmap, ACCESS_READ
 
 
 class AbstractMenuItem(ABC):
@@ -23,6 +24,7 @@ class CloseMenuItem(AbstractMenuItem):
         self.gtk = gtk
 
     def action(self, o):
+        # TODO probably check if VPN is running & close it first 
         self.gtk.main_quit()
 
 
@@ -35,35 +37,30 @@ class ConnectMenuItem(AbstractMenuItem):
 
     def action(self, o):
         config_file = VPNConfig.get_vpn_config()
-        VPNConfig.set_vpn_process(Popen(split('pkexec openfortivpn -c ' + config_file), stdin=PIPE, stdout=PIPE, stderr=PIPE))
-        process = VPNConfig.get_vpn_process()
 
-        try:
-            out_data, _ = process.communicate(timeout=5)
-            
-            if len(out_data) and 'VPN account password' in out_data.decode():
+        with open('output.log', 'w') as logs_file:
+            VPNConfig.set_vpn_process(Popen(split('pkexec openfortivpn -c ' + config_file), stdin=PIPE, stdout=logs_file, stderr=logs_file))
+            VPNConfig.get_vpn_process().communicate()
+
+        with open(logs_file.name) as logs:
+            data = mmap(logs.fileno(), 0, access=ACCESS_READ)
+
+            if data.find(b'Error') != -1 or data.find(b'ERROR') != -1:
+                VPNConfig.set_vpn_status = False
                 self.indicator.set_attention_icon_full('err', 'Error')
                 self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
                 self.indicator.set_label('FortiVPN ERR', 'FortiVPN OFF')
-                VPNConfig.set_vpn_status = False
                 
                 return
 
-        except TimeoutExpired:
-            pass
-
-        while True:
-            output = process.stdout.readline()            
-            if process.poll() is not None and output == '':
-                break
-
-            if 'Tunnel is up and running' in output.decode():
+            if data.find('Tunnel is up and running') != -1:
                 VPNConfig.set_vpn_status = True
                 self.indicator.set_attention_icon_full('on', 'Connected')
                 self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
                 self.indicator.set_label('FortiVPN ON', 'FortiVPN OFF')
                 # self._item.set_sensitive(False)
-                break
+                
+                return
 
 
 class DisconnectMenuItem(AbstractMenuItem):
