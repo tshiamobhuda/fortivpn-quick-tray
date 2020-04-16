@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from vpn_config import VPNConfig
-from subprocess import Popen, PIPE, TimeoutExpired
+from subprocess import run, Popen, PIPE, TimeoutExpired, CalledProcessError
 from shlex import split
 
 
@@ -61,18 +61,31 @@ class ConnectMenuItem(AbstractMenuItem):
                 self.indicator.set_attention_icon_full('on', 'Connected')
                 self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
                 self.indicator.set_label('FortiVPN ON', 'FortiVPN OFF')
-                self._item.set_sensitive(False)
+                # self._item.set_sensitive(False)
                 break
 
 
 class DisconnectMenuItem(AbstractMenuItem):
-    def __init__(self, gtk, indicator):
+    def __init__(self, gtk, indicator, app_indicator):
         super().__init__(gtk, 'Disconnect')
         self.gtk = gtk
+        self.app_indicator = app_indicator
         self.indicator = indicator
 
     def action(self, o):
-        pass
+        if not VPNConfig().get_vpn_status:
+            return
+
+        try:
+            run(split('pkexec kill ' + str(VPNConfig().get_vpn_process().pid)))
+
+            VPNConfig().set_vpn_status = False
+            self.indicator.set_attention_icon_full('off', 'Disconnected')
+            self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
+            self.indicator.set_label('FortiVPN OFF', 'FortiVPN OFF')
+
+        except ChildProcessError as error:
+            print(error.errno, error.strerror)
 
 
 class ConfigMenuItem(AbstractMenuItem):
@@ -124,7 +137,7 @@ class MenuBuilder:
         menu = self.__gtk.Menu()
         
         menu.append(ConnectMenuItem(self.__gtk, self.__indicator, self.__app_indicator).get_menu_item())
-        menu.append(DisconnectMenuItem(self.__gtk, self.__indicator).get_menu_item())
+        menu.append(DisconnectMenuItem(self.__gtk, self.__indicator, self.__app_indicator).get_menu_item())
         menu.append(self.__gtk.SeparatorMenuItem.new())
         menu.append(ConfigMenuItem(self.__gtk).get_menu_item())
         menu.append(LogsMenuItem(self.__gtk).get_menu_item())
