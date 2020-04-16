@@ -34,8 +34,9 @@ class ConnectMenuItem(AbstractMenuItem):
         self.app_indicator = app_indicator
 
     def action(self, o):
-        VPNConfig().set_vpn_process(Popen(split('pkexec openfortivpn -c /etc/openfortivpn/Kosmosdal'), stdin=PIPE, stdout=PIPE, stderr=PIPE))
-        process = VPNConfig().get_vpn_process()
+        config_file = VPNConfig.get_vpn_config()
+        VPNConfig.set_vpn_process(Popen(split('pkexec openfortivpn -c ' + config_file), stdin=PIPE, stdout=PIPE, stderr=PIPE))
+        process = VPNConfig.get_vpn_process()
 
         try:
             out_data, _ = process.communicate(timeout=5)
@@ -44,7 +45,7 @@ class ConnectMenuItem(AbstractMenuItem):
                 self.indicator.set_attention_icon_full('err', 'Error')
                 self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
                 self.indicator.set_label('FortiVPN ERR', 'FortiVPN OFF')
-                VPNConfig().set_vpn_status = False
+                VPNConfig.set_vpn_status = False
                 
                 return
 
@@ -57,7 +58,7 @@ class ConnectMenuItem(AbstractMenuItem):
                 break
 
             if 'Tunnel is up and running' in output.decode():
-                VPNConfig().set_vpn_status = True
+                VPNConfig.set_vpn_status = True
                 self.indicator.set_attention_icon_full('on', 'Connected')
                 self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
                 self.indicator.set_label('FortiVPN ON', 'FortiVPN OFF')
@@ -73,13 +74,13 @@ class DisconnectMenuItem(AbstractMenuItem):
         self.indicator = indicator
 
     def action(self, o):
-        if not VPNConfig().get_vpn_status:
+        if not VPNConfig.get_vpn_status():
             return
 
         try:
-            run(split('pkexec kill ' + str(VPNConfig().get_vpn_process().pid)))
+            run(split('pkexec kill ' + str(VPNConfig.get_vpn_process().pid)))
 
-            VPNConfig().set_vpn_status = False
+            VPNConfig.set_vpn_status = False
             self.indicator.set_attention_icon_full('off', 'Disconnected')
             self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
             self.indicator.set_label('FortiVPN OFF', 'FortiVPN OFF')
@@ -112,7 +113,7 @@ class ConfigMenuItem(AbstractMenuItem):
         dialog.add_filter(filter)
 
         if dialog.run() == self.gtk.ResponseType.OK:
-            VPNConfig().set_vpn_config(dialog.get_filename())
+            VPNConfig.set_vpn_config(dialog.get_filename())
             dialog.destroy()
         else:
             dialog.destroy()
