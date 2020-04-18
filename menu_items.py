@@ -122,7 +122,36 @@ class LogsMenuItem(AbstractMenuItem):
         self.gtk = gtk
 
     def action(self, o):
-        pass
+        dialog = self.gtk.Dialog(
+            title="Logs",
+            parent=self.gtk.Window(),
+            buttons=(
+                self.gtk.STOCK_CLOSE,
+                self.gtk.ResponseType.CLOSE,
+            )
+        )
+
+        dialog.set_default_size(440, 440)
+
+        scrolledwindow = self.gtk.ScrolledWindow()
+        scrolledwindow.set_hexpand(True)
+        scrolledwindow.set_vexpand(True)
+
+        text_view = self.gtk.TextView()
+        text_buffer = text_view.get_buffer()
+
+        with open('output.log') as logs:
+            text_buffer.set_text(logs.read())
+
+        scrolledwindow.add(text_view)
+        
+        container = dialog.get_content_area()
+        container.add(scrolledwindow)
+
+        dialog.show_all()
+
+        if dialog.run() == self.gtk.ResponseType.CLOSE:
+            dialog.destroy()
 
 
 class MenuBuilder:
