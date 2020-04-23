@@ -37,6 +37,8 @@ class ConnectMenuItem(AbstractMenuItem):
         self.app_indicator = app_indicator
 
     def action(self, o):
+        self.set_fields_sensitivity(False, ['connect', 'disconnect', 'config', 'close'])
+
         config_file = VPNConfig.get_vpn_config()
 
         with open('output.log', 'w+b') as logs_file:
@@ -50,11 +52,15 @@ class ConnectMenuItem(AbstractMenuItem):
         my_thread = Thread(target=self.monitor_logs, daemon=True)
         my_thread.start()
 
-    def toggleFieldsSensitivity(self, object, data):
-        menu_item_label = object.get_label()
+    def set_fields_sensitivity(self, sensitivity, fields):
+        def _set_sensitivity(object, data): 
+            menu_item_label = object.get_label()
 
-        if menu_item_label.lower() not in ['logs', 'close'] :
-            object.set_sensitive(data)
+            if menu_item_label.lower() in data.get('fields'):
+                object.set_sensitive(data.get('sensitivity'))
+                
+        container = self.indicator.get_menu()
+        container.foreach(_set_sensitivity, {'sensitivity': sensitivity, 'fields': fields})
 
     def monitor_logs(self):
         print('thread started')
@@ -63,6 +69,7 @@ class ConnectMenuItem(AbstractMenuItem):
                 line = f.readline()
                 if line.find('Error') != -1 or line.find('ERROR') != -1:
                     print('error', line)
+                    self.set_fields_sensitivity(True, ['connect', 'disconnect', 'config', 'close'])
                     self.indicator.set_attention_icon_full('err', 'Error')
                     self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
                     self.indicator.set_label('FortiVPN ERR', 'FortiVPN OFF')
@@ -70,6 +77,7 @@ class ConnectMenuItem(AbstractMenuItem):
 
                 if line.find('Tunnel is up and running') != -1:
                     print('connected', line)
+                    self.set_fields_sensitivity(True, ['disconnect'])
                     self.indicator.set_attention_icon_full('on', 'Connected')
                     self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
                     self.indicator.set_label('FortiVPN ON', 'FortiVPN OFF')
@@ -77,17 +85,13 @@ class ConnectMenuItem(AbstractMenuItem):
                 
                 if line.find('Logged out') != -1:
                     print('disconnected', line)
+                    self.set_fields_sensitivity(True, ['connect', 'disconnect', 'config', 'close'])
                     self.indicator.set_attention_icon_full('off', 'Disconnected')
                     self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
                     self.indicator.set_label('FortiVPN OFF', 'FortiVPN OFF')
                     break
 
                 sleep(0.1)
-
-            print('last line in context manager')
-
-        print('last line in monitor_logs()')
-        print(f'Threading stats: active_count -> {active_count()} | enumerate -> {len(enumerate())}')
 
 class DisconnectMenuItem(AbstractMenuItem):
     def __init__(self, gtk, indicator, app_indicator):
