@@ -69,7 +69,7 @@ class ConnectMenuItem(AbstractMenuItem):
                 line = f.readline()
                 if line.find('Error') != -1 or line.find('ERROR') != -1:
                     print('error', line)
-                    self.set_fields_sensitivity(True, ['connect', 'disconnect', 'config', 'close'])
+                    self.set_fields_sensitivity(True, ['connect' , 'config', 'close'])
                     self.indicator.set_attention_icon_full('err', 'Error')
                     self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
                     self.indicator.set_label('FortiVPN ERR', 'FortiVPN OFF')
@@ -85,7 +85,7 @@ class ConnectMenuItem(AbstractMenuItem):
                 
                 if line.find('Logged out') != -1:
                     print('disconnected', line)
-                    self.set_fields_sensitivity(True, ['connect', 'disconnect', 'config', 'close'])
+                    self.set_fields_sensitivity(True, ['connect', 'config', 'close'])
                     self.indicator.set_attention_icon_full('off', 'Disconnected')
                     self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
                     self.indicator.set_label('FortiVPN OFF', 'FortiVPN OFF')
@@ -99,6 +99,7 @@ class DisconnectMenuItem(AbstractMenuItem):
         self.gtk = gtk
         self.app_indicator = app_indicator
         self.indicator = indicator
+        self._item.set_sensitive(False)
 
     def action(self, o):
         try:
