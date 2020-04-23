@@ -11,10 +11,6 @@ from os import path
 if __name__ == "__main__":
     indicator = AppIndicator3.Indicator.new_with_path(
         'FortiVPN-Quick-Tray',
-
-if __name__ == "__main__":
-    indicator = AppIndicator3.Indicator.new_with_path(
-        APP_NAME,
         'off',
         AppIndicator3.IndicatorCategory.APPLICATION_STATUS,
         path.dirname(path.realpath(__file__)) + '/icons'
