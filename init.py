@@ -8,7 +8,9 @@ from gi.repository import Gtk, AppIndicator3
 from menu_items import MenuBuilder
 from os import path
 
-APP_NAME = 'FortiVPN-Quick-Tray'
+if __name__ == "__main__":
+    indicator = AppIndicator3.Indicator.new_with_path(
+        'FortiVPN-Quick-Tray',
 
 if __name__ == "__main__":
     indicator = AppIndicator3.Indicator.new_with_path(
