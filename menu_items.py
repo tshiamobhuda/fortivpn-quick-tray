@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from vpn_config import VPNConfig
-from subprocess import run, Popen, PIPE, TimeoutExpired, CalledProcessError
+from subprocess import run, Popen, PIPE, TimeoutExpired
 from shlex import split
-from mmap import mmap, ACCESS_READ
+from time import sleep
+from threading import Thread, enumerate, active_count
 
 
 class AbstractMenuItem(ABC):
@@ -38,30 +39,55 @@ class ConnectMenuItem(AbstractMenuItem):
     def action(self, o):
         config_file = VPNConfig.get_vpn_config()
 
-        with open('output.log', 'w') as logs_file:
-            VPNConfig.set_vpn_process(Popen(split('pkexec openfortivpn -c ' + config_file), stdin=PIPE, stdout=logs_file, stderr=logs_file))
-            VPNConfig.get_vpn_process().communicate()
+        with open('output.log', 'w+b') as logs_file:
+            try:
+                VPNConfig.set_vpn_process(Popen(split('pkexec openfortivpn -c ' + config_file), stdin=PIPE, stdout=logs_file, stderr=logs_file))
+                VPNConfig.get_vpn_process().communicate(timeout=1)
+            except TimeoutExpired:
+                print('time exipred')
+                pass
+        
+        my_thread = Thread(target=self.monitor_logs, daemon=True)
+        my_thread.start()
 
-        with open(logs_file.name) as logs:
-            data = mmap(logs.fileno(), 0, access=ACCESS_READ)
+    def toggleFieldsSensitivity(self, object, data):
+        menu_item_label = object.get_label()
 
-            if data.find(b'Error') != -1 or data.find(b'ERROR') != -1:
-                VPNConfig.set_vpn_status = False
-                self.indicator.set_attention_icon_full('err', 'Error')
-                self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
-                self.indicator.set_label('FortiVPN ERR', 'FortiVPN OFF')
+        if menu_item_label.lower() not in ['logs', 'close'] :
+            object.set_sensitive(data)
+
+    def monitor_logs(self):
+        print('thread started')
+        with open('output.log') as f:
+            while True:
+                line = f.readline()
+                if line.find('Error') != -1 or line.find('ERROR') != -1:
+                    print('error', line)
+                    self.indicator.set_attention_icon_full('err', 'Error')
+                    self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
+                    self.indicator.set_label('FortiVPN ERR', 'FortiVPN OFF')
+                    break
+
+                if line.find('Tunnel is up and running') != -1:
+                    print('connected', line)
+                    self.indicator.set_attention_icon_full('on', 'Connected')
+                    self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
+                    self.indicator.set_label('FortiVPN ON', 'FortiVPN OFF')
+                    
                 
-                return
+                if line.find('Logged out') != -1:
+                    print('disconnected', line)
+                    self.indicator.set_attention_icon_full('off', 'Disconnected')
+                    self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
+                    self.indicator.set_label('FortiVPN OFF', 'FortiVPN OFF')
+                    break
 
-            if data.find('Tunnel is up and running') != -1:
-                VPNConfig.set_vpn_status = True
-                self.indicator.set_attention_icon_full('on', 'Connected')
-                self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
-                self.indicator.set_label('FortiVPN ON', 'FortiVPN OFF')
-                # self._item.set_sensitive(False)
-                
-                return
+                sleep(0.1)
 
+            print('last line in context manager')
+
+        print('last line in monitor_logs()')
+        print(f'Threading stats: active_count -> {active_count()} | enumerate -> {len(enumerate())}')
 
 class DisconnectMenuItem(AbstractMenuItem):
     def __init__(self, gtk, indicator, app_indicator):
@@ -71,17 +97,8 @@ class DisconnectMenuItem(AbstractMenuItem):
         self.indicator = indicator
 
     def action(self, o):
-        if not VPNConfig.get_vpn_status():
-            return
-
         try:
             run(split('pkexec kill ' + str(VPNConfig.get_vpn_process().pid)))
-
-            VPNConfig.set_vpn_status = False
-            self.indicator.set_attention_icon_full('off', 'Disconnected')
-            self.indicator.set_status(self.app_indicator.IndicatorStatus.ATTENTION)
-            self.indicator.set_label('FortiVPN OFF', 'FortiVPN OFF')
-
         except ChildProcessError as error:
             print(error.errno, error.strerror)
 
@@ -144,7 +161,7 @@ class LogsMenuItem(AbstractMenuItem):
             text_buffer.set_text(logs.read())
 
         scrolledwindow.add(text_view)
-        
+
         container = dialog.get_content_area()
         container.add(scrolledwindow)
 
