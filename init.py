@@ -66,7 +66,10 @@ class Indicator():
         vpn_process_thread.start()
 
     def _click_disconnect(self, object):
-        pass
+        try:
+            run(split('pkexec kill ' + str(self.vpn_process.pid)))
+        except ChildProcessError:
+            pass
 
     def _click_config(self, object):
         dialog = Gtk.FileChooserDialog(
