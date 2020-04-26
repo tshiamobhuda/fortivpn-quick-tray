@@ -25,6 +25,7 @@ class Indicator():
         self.indicator.set_menu(self._build_menu())
 
         self.vpn_config = '/etc/openfortivpn/config'
+        self.vpn_process = None
 
     def _build_menu(self):
         menu = Gtk.Menu()
@@ -116,10 +117,15 @@ class Indicator():
         scrolledwindow.set_vexpand(True)
 
         text_view = Gtk.TextView()
+        text_view.set_editable(False)
         text_buffer = text_view.get_buffer()
 
-        with open('output.log') as logs:
-            text_buffer.set_text(logs.read())
+        if self.vpn_process != None:
+            with open('output.log') as logs:
+                text_buffer.set_text(logs.read())
+        else:
+            with open('output.log', 'w'): 
+                pass
 
         scrolledwindow.add(text_view)
 
