@@ -5,7 +5,6 @@ gi.require_version('Gtk', '3.0')
 gi.require_version("AppIndicator3", "0.1")
 
 from gi.repository import Gtk, AppIndicator3
-from menu_items import MenuBuilder
 from os import path
 from subprocess import run, Popen, PIPE, TimeoutExpired
 from shlex import split
