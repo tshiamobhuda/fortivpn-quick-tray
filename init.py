@@ -37,8 +37,10 @@ class Indicator():
         
         menu.append(self.connect_menu_item)
         menu.append(self.disconnect_menu_item)
+        menu.append(Gtk.SeparatorMenuItem.new())
         menu.append(self.config_menu_item)
         menu.append(self.logs_menu_item)
+        menu.append(Gtk.SeparatorMenuItem.new())
         menu.append(self.exit_menu_item)
 
         menu.show_all()
