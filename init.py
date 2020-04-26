@@ -7,6 +7,11 @@ gi.require_version("AppIndicator3", "0.1")
 from gi.repository import Gtk, AppIndicator3
 from menu_items import MenuBuilder
 from os import path
+from subprocess import run, Popen, PIPE, TimeoutExpired
+from shlex import split
+from threading import Thread
+from time import sleep
+
 
 class Indicator():
     def __init__(self):
@@ -20,7 +25,7 @@ class Indicator():
         self.indicator.set_label('FortiVPN OFF', 'FortiVPN OFF')
         self.indicator.set_menu(self._build_menu())
 
-        self.vpn_config = None
+        self.vpn_config = '/etc/openfortivpn/config'
 
     def _build_menu(self):
         menu = Gtk.Menu()
@@ -31,7 +36,7 @@ class Indicator():
         self.logs_menu_item = Gtk.MenuItem('Logs')
         self.exit_menu_item = Gtk.MenuItem('Exit')
 
-        self.connect_menu_item.connect('activate', self._click_exit)
+        self.connect_menu_item.connect('activate', self._click_connect)
         self.disconnect_menu_item.connect('activate', self._click_disconnect)
         self.config_menu_item.connect('activate', self._click_config)
         self.logs_menu_item.connect('activate', self._click_logs)
@@ -50,7 +55,15 @@ class Indicator():
         return menu
 
     def _click_connect(self, object):
-        pass
+        with open('output.log', 'w+b') as f:
+            try:
+                self.vpn_process = Popen(split('pkexec openfortivpn -c ' + self.vpn_config), stdin=PIPE, stdout=f, stderr=f)
+                self.vpn_process.communicate(timeout=1)
+            except TimeoutExpired:
+                pass
+        
+        vpn_process_thread = Thread(target=self._monitor_logs, daemon=True)
+        vpn_process_thread.start()
 
     def _click_disconnect(self, object):
         pass
@@ -85,6 +98,28 @@ class Indicator():
 
     def _click_exit(self, object):
         Gtk.main_quit()
+
+    def _monitor_logs(self):
+        with open('output.log') as f:
+            while True:
+                line = f.readline()
+                if line.find('Error') != -1 or line.find('ERROR') != -1:
+                    self._change_icon('ERR')
+                    break
+
+                if line.find('Tunnel is up and running') != -1:
+                    self._change_icon('ON')
+
+                if line.find('Logged out') != -1:
+                    self._change_icon('OFF')
+                    break
+
+                sleep(0.1)
+
+    def _change_icon(self, state):
+        self.indicator.set_attention_icon_full(state.lower(), state)
+        self.indicator.set_status(AppIndicator3.IndicatorStatus.ATTENTION)
+        self.indicator.set_label(f'FortiVPN {state}', 'FortiVPN OFF')
 
 if __name__ == "__main__":
 
