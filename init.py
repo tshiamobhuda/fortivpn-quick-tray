@@ -32,6 +32,7 @@ class Indicator():
 
         self.connect_menu_item = Gtk.MenuItem('Connect')
         self.disconnect_menu_item = Gtk.MenuItem('Disonnect')
+        self.disconnect_menu_item.set_sensitive(False)
         self.config_menu_item = Gtk.MenuItem('Config')
         self.logs_menu_item = Gtk.MenuItem('Logs')
         self.exit_menu_item = Gtk.MenuItem('Exit')
@@ -55,6 +56,8 @@ class Indicator():
         return menu
 
     def _click_connect(self, object):
+        self._set_fields_sensitivity(False, ['connect', 'config', 'close'])
+
         with open('output.log', 'w+b') as f:
             try:
                 self.vpn_process = Popen(split('pkexec openfortivpn -c ' + self.vpn_config), stdin=PIPE, stdout=f, stderr=f)
@@ -136,13 +139,17 @@ class Indicator():
             while True:
                 line = f.readline()
                 if line.find('Error') != -1 or line.find('ERROR') != -1:
+                    self._set_fields_sensitivity(True, ['connect' , 'config', 'close'])
                     self._change_icon('ERR')
                     break
 
                 if line.find('Tunnel is up and running') != -1:
+                    self.disconnect_menu_item.set_sensitive(True)
                     self._change_icon('ON')
 
                 if line.find('Logged out') != -1:
+                    self.disconnect_menu_item.set_sensitive(False)
+                    self._set_fields_sensitivity(True, ['connect', 'config', 'close'])
                     self._change_icon('OFF')
                     break
 
@@ -153,8 +160,18 @@ class Indicator():
         self.indicator.set_status(AppIndicator3.IndicatorStatus.ATTENTION)
         self.indicator.set_label(f'FortiVPN {state}', 'FortiVPN OFF')
 
-if __name__ == "__main__":
+    def _set_fields_sensitivity(self, sensitivity, fields):
+        def _set_sensitivity(object, data): 
+            menu_item_label = object.get_label()
 
+            if menu_item_label.lower() in data.get('fields'):
+                object.set_sensitive(data.get('sensitivity'))
+                
+        container = self.indicator.get_menu()
+        container.foreach(_set_sensitivity, {'sensitivity': sensitivity, 'fields': fields})
+
+
+if __name__ == "__main__":
     Indicator()
 
     signal.signal(signal.SIGINT, signal.SIG_DFL)
