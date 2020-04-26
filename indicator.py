@@ -138,6 +138,21 @@ class Indicator():
             dialog.destroy()
 
     def _click_exit(self, object):
+        if self.indicator.get_attention_icon_desc() == 'ON':
+            dialog = Gtk.MessageDialog(
+                Gtk.Window(),
+                0,
+                Gtk.MessageType.WARNING,
+                Gtk.ButtonsType.CLOSE,
+                'VPN ON'
+            )
+            dialog.format_secondary_text("VPN is still ON. Please Disconnect first before exiting")
+
+            if dialog.run() == Gtk.ResponseType.CLOSE:
+                dialog.destroy()
+
+                return
+
         Gtk.main_quit()
 
     def _monitor_logs(self):
