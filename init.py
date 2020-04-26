@@ -20,6 +20,8 @@ class Indicator():
         self.indicator.set_label('FortiVPN OFF', 'FortiVPN OFF')
         self.indicator.set_menu(self._build_menu())
 
+        self.vpn_config = None
+
     def _build_menu(self):
         menu = Gtk.Menu()
 
@@ -53,10 +55,32 @@ class Indicator():
     def _click_disconnect(self, object):
         pass
 
-    def _click_logs(self, object):
-        pass
-
     def _click_config(self, object):
+        dialog = Gtk.FileChooserDialog(
+            title="Select openfortivpn configuration file",
+            action=Gtk.FileChooserAction.OPEN,
+            parent=Gtk.Window(),
+            buttons=(
+                Gtk.STOCK_CANCEL,
+                Gtk.ResponseType.CANCEL,
+                Gtk.STOCK_OK,
+                Gtk.ResponseType.OK
+            )
+        )
+
+        filter = Gtk.FileFilter()
+        filter.set_name('Text File')
+        filter.add_mime_type('text/plain')
+        dialog.add_filter(filter)
+
+        if dialog.run() == Gtk.ResponseType.OK:
+            self.vpn_config = dialog.get_filename()
+            print(self.vpn_config)
+            dialog.destroy()
+        else:
+            dialog.destroy()
+
+    def _click_logs(self, object):
         pass
 
     def _click_exit(self, object):
