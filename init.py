@@ -97,7 +97,36 @@ class Indicator():
             dialog.destroy()
 
     def _click_logs(self, object):
-        pass
+        dialog = Gtk.Dialog(
+            title="Logs",
+            parent=Gtk.Window(),
+            buttons=(
+                Gtk.STOCK_CLOSE,
+                Gtk.ResponseType.CLOSE,
+            )
+        )
+
+        dialog.set_default_size(440, 440)
+
+        scrolledwindow = Gtk.ScrolledWindow()
+        scrolledwindow.set_hexpand(True)
+        scrolledwindow.set_vexpand(True)
+
+        text_view = Gtk.TextView()
+        text_buffer = text_view.get_buffer()
+
+        with open('output.log') as logs:
+            text_buffer.set_text(logs.read())
+
+        scrolledwindow.add(text_view)
+
+        container = dialog.get_content_area()
+        container.add(scrolledwindow)
+
+        dialog.show_all()
+
+        if dialog.run() == Gtk.ResponseType.CLOSE:
+            dialog.destroy()
 
     def _click_exit(self, object):
         Gtk.main_quit()
