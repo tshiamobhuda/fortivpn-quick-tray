@@ -56,6 +56,7 @@ class Indicator():
         return menu
 
     def _click_connect(self, object):
+        self._change_icon('TRY')
         self._set_fields_sensitivity(False, ['connect', 'config', 'close'])
 
         with open('output.log', 'w+b') as f:
