@@ -2,7 +2,7 @@
 
 A simple system tray application for minitoring a `openfortivpn` connection.
 
-Use this to connect to connect to fortinet VPN. It uses `openfortivpn` 
+Use this to connect to fortinet VPN. It uses `openfortivpn` 
 
 # Requirements
 ```
